@@ -1,0 +1,20 @@
+---
+
+# Variable configuration
+- name: Include variables tasks.
+  include_tasks: 01_variables.yml
+
+# Setup/install tasks
+- name: Include setup tasks.
+  include_tasks: "10_setup-{{ ansible_os_family }}.yml"
+
+# Configure Apache2
+- name: Include configuration tasks.
+  include_tasks: "20_config-{{ ansible_os_family }}.yml"
+
+
+- name: Ensure Apache has selected state and enabled on boot.
+  service:
+    name: "{{ apache_service }}"
+    state: "{{ apache_state }}"
+    enabled: "{{ apache_enabled }}"

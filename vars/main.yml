@@ -1,0 +1,15 @@
+---
+# vars file for apache
+
+__apache_packages:
+  - apache2
+
+__apache_service: apache2
+
+__apache_server_root: /etc/apache2
+
+__apache_default_vhosts:
+  - 000-default
+
+__apache_notify_reconfigure:
+  - restart apache

@@ -1,0 +1,79 @@
+{{ ansible_managed | comment }}
+{# required variables: _vhost #}
+{# macro: apache_dval #}
+{% macro apache_dval(val, list_join=' ') -%}
+{%- if val is boolean %}{{ val | ternary('On', 'Off') }}
+{%- elif val is not string and val is not mapping and val is iterable %}{{ val | join(list_join) }}
+{%- else %}{{ val | string }}{% endif %}
+{%- endmacro %}
+{# macro: apache_directive #}
+{% macro apache_directive(name, value, new_line_suffix=false) -%}
+{% if value | length -%}
+{{ name }} {{ apache_dval(value) }}{{ "\n" if new_line_suffix }}
+{%- endif %}
+{%- endmacro %}
+{# macro: print_vhosthead #}
+{% macro print_vhosthead() %}
+    {{- apache_directive('ServerName', _vhost.servername | default(''), true) }}
+    {{- apache_directive('ServerAlias', _vhost.serveralias | default(''), true) }}
+    {{- apache_directive('ServerAdmin', _vhost.serveradmin | default(''), true) }}
+{%- endmacro %}
+{# macro: print_documentroot #}
+{% macro print_documentroot() %}
+{% if _vhost.documentroot is defined %}
+    {{ apache_directive('DirectoryIndex', _vhost.directory_index | default(apache_directory_index) ) }}
+    DocumentRoot {{ _vhost.documentroot }}
+    <Directory {{ _vhost.documentroot }}>
+        {{ apache_directive('AllowOverride', _vhost.allow_override | default(apache_allow_override) ) }}
+        {{ apache_directive('Options', _vhost.options | default(apache_options) ) }}
+        <IfVersion >= 2.4>
+            Require all granted
+        </IfVersion>
+        <IfVersion < 2.4>
+            Order allow,deny
+            Allow from all
+        </IfVersion>
+    </Directory>
+{% endif %}
+{% endmacro %}
+
+{% if _vhost.http | default(true) %}
+<VirtualHost {{ apache_listen_ip }}:{{ apache_listen_port_http }} >
+    {{ print_vhosthead() | indent(width=4) }}
+    ErrorLog ${APACHE_LOG_DIR}/vhost_{{ _vhost.name }}_error.log
+    CustomLog ${APACHE_LOG_DIR}/vhost_{{ _vhost.name }}_access.log combined
+
+{% if _vhost.redirect_https | default(false) %}
+    Redirect permanent / https://{{ _vhost.servername | default('%{HTTP_HOST}', true) }}/
+{% else %}
+{{ print_documentroot() }}
+{% if _vhost.extra_block is defined %}
+    {{ _vhost.extra_block | indent(width=4) }}
+{% endif %}
+{% endif %}
+</VirtualHost>
+{% endif %}
+
+{% if _vhost.https | default(false) %}
+<VirtualHost {{ apache_listen_ip }}:{{ apache_listen_port_https }} >
+    {{ print_vhosthead() | indent(width=4) }}
+    ErrorLog ${APACHE_LOG_DIR}/vhost_{{ _vhost.name }}_ssl_error.log
+    CustomLog ${APACHE_LOG_DIR}/vhost_{{ _vhost.name }}_ssl_access.log combined
+
+{{ print_documentroot() }}
+    SSLEngine On
+    SSLCertificateFile      {{ _vhost.cert_file }}
+    SSLCertificateKeyFile   {{ _vhost.cert_keyfile }}
+{% if _vhost.cert_chainfile is defined %}
+    SSLCertificateChainFile {{ _vhost.cert_chainfile }}
+{% endif %}
+
+    Protocols h2 http/1.1
+
+{% if _vhost.extra_block is defined %}
+    {{ _vhost.extra_block | indent(width=4) }}
+{% endif %}
+</VirtualHost>
+{% endif %}
+
+# vim: syntax=apache ts=4 sw=4 sts=4 sr noet

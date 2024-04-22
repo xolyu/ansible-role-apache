@@ -1,0 +1,69 @@
+---
+
+- name: Template ports.conf.
+  template:
+    src: ports.conf.j2
+    dest: "{{ (apache_server_root, 'ports.conf') | path_join }}"
+    owner: root
+    group: root
+    mode: 0644
+  notify: "{{ __apache_notify_reconfigure }}"
+
+- name: Template configs.
+  template:
+    src: conf_blank.conf.j2
+    dest: "{{ (apache_server_root, 'conf-available', item.key ~ '.conf') | path_join }}"
+    owner: root
+    group: root
+    mode: 0644
+  vars:
+    content: "{{ item.value.content }}"
+  loop: "{{ apache_configs | default({}) | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  notify: "{{ __apache_notify_reconfigure }}"
+
+- name: Template simple vhosts.
+  template:
+    src: vhost_simple.conf.j2
+    dest: "{{ (apache_server_root, 'sites-available', _vhost.name ~ '.conf') | path_join }}"
+    owner: root
+    group: root
+    mode: 0644
+  loop: "{{ apache_simple_vhosts | default([]) }}"
+  loop_control:
+    loop_var: _vhost
+    label: "{{ _vhost.name }}"
+  notify: "{{ __apache_notify_reconfigure }}"
+
+
+- name: Include mods/conf/sites enable/disable tasks.
+  include_tasks: 21_a2endis.yml
+
+  loop:
+    - label: Modules
+      list_enabled: "{{ _apache_mods_enabled }}"
+      list_disabled: "{{ _apache_mods_disabled }}"
+      dir_available: mods-available
+      dir_enabled: mods-enabled
+      ext: load
+      ext_conditioned: conf
+      fail_if_not_exist: "{{ apache_fail_if_mod_not_exist }}"
+    - label: Configs
+      list_enabled: "{{ _apache_conf_enabled }}"
+      list_disabled: "{{ _apache_conf_disabled }}"
+      dir_available: conf-available
+      dir_enabled: conf-enabled
+      ext: conf
+      fail_if_not_exist: "{{ apache_fail_if_conf_not_exist }}"
+    - label: Sites
+      list_enabled: "{{ _apache_sites_enabled }}"
+      list_disabled: "{{ _apache_sites_disabled }}"
+      dir_available: sites-available
+      dir_enabled: sites-enabled
+      ext: conf
+      fail_if_not_exist: "{{ apache_fail_if_site_not_exist }}"
+
+  loop_control:
+    loop_var: _a2endis
+    label: "{{ _a2endis.label }}"

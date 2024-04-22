@@ -1,0 +1,67 @@
+---
+
+- name: Define apache_packages.
+  set_fact:
+    apache_packages: "{{ __apache_packages | list }}"
+  when: apache_packages is not defined
+
+- name: Define apache_service.
+  set_fact:
+    apache_service: "{{ __apache_service }}"
+  when: apache_service is not defined
+
+- name: Define apache_server_root.
+  set_fact:
+    apache_server_root: "{{ __apache_server_root }}"
+  when: apache_server_root is not defined
+
+
+# a2endis
+
+- name: Define _apache_mods_enabled and _apache_mods_disabled.
+  set_fact:
+    _apache_mods_enabled: "{{ list_enabled | flatten | unique }}"
+    _apache_mods_disabled: "{{ list_disabled | flatten | unique }}"
+  vars:
+    list_enabled:
+      - "{{ apache_mods_enabled | default([]) }}"
+      - "{{ ['remoteip']  if apache_trusted_proxy_ip is defined else  [] }}"
+    list_disabled:
+      - "{{ apache_mods_disabled | default([]) }}"
+
+- name: Define _apache_conf_enabled and _apache_conf_disabled.
+  set_fact:
+    _apache_conf_enabled: "{{ list_enabled | flatten | unique }}"
+    _apache_conf_disabled: "{{ list_disabled | flatten | unique }}"
+  vars:
+    list_enabled:
+      - "{{ apache_conf_enabled | default([]) }}"
+      - "{{ apache_configs | default({}) | list }}"
+      - "{{ ['remoteip']  if apache_trusted_proxy_ip is defined else  [] }}"
+    list_disabled:
+      - "{{ apache_conf_disabled | default([]) }}"
+      - "{{ ['remoteip']  if apache_trusted_proxy_ip is not defined and 'remoteip' not in (list_enabled | flatten) else  [] }}"
+
+- name: Define _apache_sites_enabled and _apache_sites_disabled.
+  set_fact:
+    _apache_sites_enabled: "{{ list_enabled | flatten | unique }}"
+    _apache_sites_disabled: "{{ list_disabled | flatten | unique }}"
+  vars:
+    list_enabled:
+      - "{{ apache_sites_enabled | default([]) }}"
+      - "{{ (apache_simple_vhosts | default([])) | map(attribute='name') }}"
+    list_disabled:
+      - "{{ apache_sites_disabled | default([]) }}"
+      - "{{ __apache_default_vhosts  if apache_disable_default_vhost else  [] }}"
+
+
+- name: Define apache_configs » add remoteip.
+  set_fact:
+    apache_configs: "{{ new_conf | combine(apache_configs | default({})) }}"
+  vars:
+    new_conf:
+      remoteip:
+        content: |
+          RemoteIPHeader X-Forwarded-For
+          RemoteIPInternalProxy {{ apache_trusted_proxy_ip }}
+  when: apache_trusted_proxy_ip is defined

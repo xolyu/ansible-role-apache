@@ -1,0 +1,45 @@
+---
+
+- name: "Get all available {{ _a2endis.label }} files."
+  find:
+    path: "{{ (apache_server_root, _a2endis.dir_available) | path_join }}"
+  register: _apache_files_available
+
+- name: Extract basenames from available file paths.
+  set_fact:
+    _apache_files_available: "{{ _apache_files_available.files | map(attribute='path') | map('basename') }}"
+
+- name: "Enable Apache {{ _a2endis.label }} (.{{ _a2endis.ext }})."
+  file:
+    path: "{{ (apache_server_root, _a2endis.dir_enabled, filename) | path_join }}"
+    src: "{{ ('..', _a2endis.dir_available, filename) | path_join }}"
+    state: link
+    mode: 0644
+  with_items: "{{ _a2endis.list_enabled }}"
+  vars:
+    filename: "{{ item }}.{{ _a2endis.ext }}"
+  when: _a2endis.fail_if_not_exist | bool  or  filename in _apache_files_available
+  notify: "{{ __apache_notify_reconfigure }}"
+
+- name: "Enable Apache {{ _a2endis.label }} (.{{ _a2endis.ext_conditioned | default('.. nothing to do, skip') }})."
+  file:
+    path: "{{ (apache_server_root, _a2endis.dir_enabled, filename) | path_join }}"
+    src: "{{ ('..', _a2endis.dir_available, filename) | path_join }}"
+    state: link
+    mode: 0644
+  with_items: "{{ _a2endis.list_enabled  if _a2endis.ext_conditioned is defined else  [] }}"
+  vars:
+    filename: "{{ item }}.{{ _a2endis.ext_conditioned }}"
+    primaryname: "{{ item }}.{{ _a2endis.ext }}"
+  when: filename in _apache_files_available  and  primaryname in _apache_files_available
+  notify: "{{ __apache_notify_reconfigure }}"
+
+- name: "Disable Apache {{ _a2endis.label }}."
+  file:
+    path: "{{ (apache_server_root, _a2endis.dir_enabled, item) | path_join }}"
+    state: absent
+  with_items: "{{ _a2endis.list_disabled | product(file_exts) | map('join') }}"
+  vars:
+    extc: "{{ ['.' ~ _a2endis.ext_conditioned]  if _a2endis.ext_conditioned is defined else  [] }}"
+    file_exts: "{{ ['.' ~ _a2endis.ext] + extc }}"
+  notify: "{{ __apache_notify_reconfigure }}"
