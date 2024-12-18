@@ -197,6 +197,12 @@ None.
   Type: str or list of str  
   Default: _undefined_
 
+* **`apache_server_tokens`**  
+  The desired value for the directive `ServerTokens`, which is defined by default in `security.conf` and is changed there via `single_line` config.  
+  Type: str  
+  Choices: _see Values for [ServerTokens Directive in Apache-Docs](https://httpd.apache.org/docs/current/mod/core.html#servertokens)_  
+  Default: _undefined_
+
 
 <!--
 * **`VAR`**  

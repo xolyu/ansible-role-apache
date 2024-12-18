@@ -65,3 +65,14 @@
           RemoteIPHeader X-Forwarded-For
           RemoteIPInternalProxy {{ apache_trusted_proxy_ip }}
   when: apache_trusted_proxy_ip is defined
+
+- name: Define apache_configs » add security/ServerTokens.
+  set_fact:
+    apache_configs: "{{ new_conf | combine(apache_configs | default({})) }}"
+  vars:
+    new_conf:
+      security:
+        single_line:
+          - key: ServerTokens
+            value: "{{ apache_server_tokens }}"
+  when: apache_server_tokens is defined

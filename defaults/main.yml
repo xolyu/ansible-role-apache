@@ -32,3 +32,4 @@ apache_options: -Indexes +FollowSymLinks
 # apache_simple_vhosts: []
 
 # apache_trusted_proxy_ip: '10.0.0.10'
+# apache_server_tokens: Prod
