@@ -126,9 +126,26 @@ None.
       content: |
         {content}
   ```
+  ```yml
+  apache_configs:
+    {existing_conf_name}:
+      single_line:
+        - key: {directive_name}
+          value: {value}
+          state: present  # present, absent
+  ```
 
+  Hints
+  * If `content` is defined, it's templated with that content.
+  * To use `single_line`, `content` must not be defined.
+  * In `single_line` mode, a line is identified by the `key`.
+
+  Variables
   * `conf_name`: Name of the file (without extension) in `conf-available` directory.
   * `content`: Content to print in conf file.
+  * `existing_conf_name`: Same as `conf_name`, but ensure conf file already exists.
+  * `directive_name`: Name of the directive, the identifier for the lineinfile module.
+  * `value`: New value to set.
 
 * **`apache_simple_vhosts`**  
   Definition for own vhosts. Saved in `sites-available`.  

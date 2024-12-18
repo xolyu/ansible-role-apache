@@ -18,9 +18,22 @@
     mode: 0644
   vars:
     content: "{{ item.value.content }}"
-  loop: "{{ apache_configs | default({}) | dict2items }}"
+  loop: "{{ apache_configs | default({}) | dict2items | selectattr('value.content', 'defined') }}"
   loop_control:
     label: "{{ item.key }}"
+  notify: "{{ __apache_notify_reconfigure }}"
+
+- name: Single line configs.
+  lineinfile:
+    path: "{{ (apache_server_root, 'conf-available', item.0.key ~ '.conf') | path_join }}"
+    state: "{{ 'absent' if (item.1.state | default('')) == 'absent' else 'present' }}"
+    regexp: '^{{ item.1.key }}\s+'
+    line: "{{ item.1.key }} {{ item.1.value }}"
+    insertafter: '^#{{ item.1.key }}\s+'
+  loop: "{{ apache_configs | default({}) | dict2items | rejectattr('value.content', 'defined') | selectattr('value.single_line', 'defined')
+    | subelements('value.single_line') }}"
+  loop_control:
+    label: "{{ item.0.key }} / {{ item.1.key }}"
   notify: "{{ __apache_notify_reconfigure }}"
 
 - name: Template simple vhosts.
