@@ -1,21 +1,21 @@
 ---
 
 - name: Template ports.conf.
-  template:
+  ansible.builtin.template:
     src: ports.conf.j2
     dest: "{{ (apache_server_root, 'ports.conf') | path_join }}"
     owner: root
     group: root
-    mode: 0644
+    mode: '0644'
   notify: "{{ __apache_notify_reconfigure }}"
 
 - name: Template configs.
-  template:
+  ansible.builtin.template:
     src: conf_blank.conf.j2
     dest: "{{ (apache_server_root, 'conf-available', item.key ~ '.conf') | path_join }}"
     owner: root
     group: root
-    mode: 0644
+    mode: '0644'
   vars:
     content: "{{ item.value.content }}"
   loop: "{{ apache_configs | default({}) | dict2items | selectattr('value.content', 'defined') }}"
@@ -24,7 +24,7 @@
   notify: "{{ __apache_notify_reconfigure }}"
 
 - name: Single line configs.
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: "{{ (apache_server_root, 'conf-available', item.0.key ~ '.conf') | path_join }}"
     state: "{{ 'absent' if (item.1.state | default('')) == 'absent' else 'present' }}"
     regexp: '^{{ item.1.key }}\s+'
@@ -37,12 +37,12 @@
   notify: "{{ __apache_notify_reconfigure }}"
 
 - name: Template simple vhosts.
-  template:
+  ansible.builtin.template:
     src: vhost_simple.conf.j2
     dest: "{{ (apache_server_root, 'sites-available', _vhost.name ~ '.conf') | path_join }}"
     owner: root
     group: root
-    mode: 0644
+    mode: '0644'
   loop: "{{ apache_simple_vhosts | default([]) }}"
   loop_control:
     loop_var: _vhost
@@ -51,7 +51,7 @@
 
 
 - name: Include mods/conf/sites enable/disable tasks.
-  include_tasks: 21_a2endis.yml
+  ansible.builtin.include_tasks: 21_a2endis.yml
 
   loop:
     - label: Modules

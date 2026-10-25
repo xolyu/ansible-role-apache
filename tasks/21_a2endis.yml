@@ -1,20 +1,20 @@
 ---
 
 - name: "Get all available {{ _a2endis.label }} files."
-  find:
+  ansible.builtin.find:
     path: "{{ (apache_server_root, _a2endis.dir_available) | path_join }}"
   register: _apache_files_available
 
 - name: Extract basenames from available file paths.
-  set_fact:
+  ansible.builtin.set_fact:
     _apache_files_available: "{{ _apache_files_available.files | map(attribute='path') | map('basename') }}"
 
 - name: "Enable Apache {{ _a2endis.label }} (.{{ _a2endis.ext }})."
-  file:
+  ansible.builtin.file:
     path: "{{ (apache_server_root, _a2endis.dir_enabled, filename) | path_join }}"
     src: "{{ ('..', _a2endis.dir_available, filename) | path_join }}"
     state: link
-    mode: 0644
+    mode: '0644'
   with_items: "{{ _a2endis.list_enabled }}"
   vars:
     filename: "{{ item }}.{{ _a2endis.ext }}"
@@ -22,11 +22,11 @@
   notify: "{{ __apache_notify_reconfigure }}"
 
 - name: "Enable Apache {{ _a2endis.label }} (.{{ _a2endis.ext_conditioned | default('.. nothing to do, skip') }})."
-  file:
+  ansible.builtin.file:
     path: "{{ (apache_server_root, _a2endis.dir_enabled, filename) | path_join }}"
     src: "{{ ('..', _a2endis.dir_available, filename) | path_join }}"
     state: link
-    mode: 0644
+    mode: '0644'
   with_items: "{{ _a2endis.list_enabled  if _a2endis.ext_conditioned is defined else  [] }}"
   vars:
     filename: "{{ item }}.{{ _a2endis.ext_conditioned }}"
@@ -35,7 +35,7 @@
   notify: "{{ __apache_notify_reconfigure }}"
 
 - name: "Disable Apache {{ _a2endis.label }}."
-  file:
+  ansible.builtin.file:
     path: "{{ (apache_server_root, _a2endis.dir_enabled, item) | path_join }}"
     state: absent
   with_items: "{{ _a2endis.list_disabled | product(file_exts) | map('join') }}"
