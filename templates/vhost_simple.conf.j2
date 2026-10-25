@@ -8,7 +8,7 @@
 {%- endmacro %}
 {# macro: apache_directive #}
 {% macro apache_directive(name, value, new_line_suffix=false) -%}
-{% if value | length -%}
+{% if value | length > 0 -%}
 {{ name }} {{ apache_dval(value) }}{{ "\n" if new_line_suffix }}
 {%- endif %}
 {%- endmacro %}
@@ -39,7 +39,7 @@
 
 {% if _vhost.http | default(true) %}
 <VirtualHost {{ apache_listen_ip }}:{{ apache_listen_port_http }} >
-    {{ print_vhosthead() | indent(width=4) }}
+    {{ print_vhosthead() | default('', true) | indent(width=4) }}
     ErrorLog ${APACHE_LOG_DIR}/vhost_{{ _vhost.name }}_error.log
     CustomLog ${APACHE_LOG_DIR}/vhost_{{ _vhost.name }}_access.log combined
 
@@ -56,7 +56,7 @@
 
 {% if _vhost.https | default(false) %}
 <VirtualHost {{ apache_listen_ip }}:{{ apache_listen_port_https }} >
-    {{ print_vhosthead() | indent(width=4) }}
+    {{ print_vhosthead() | default('', true) | indent(width=4) }}
     ErrorLog ${APACHE_LOG_DIR}/vhost_{{ _vhost.name }}_ssl_error.log
     CustomLog ${APACHE_LOG_DIR}/vhost_{{ _vhost.name }}_ssl_access.log combined
 
